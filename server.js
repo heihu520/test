@@ -4,10 +4,11 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const db = require('./database');
+require('dotenv').config();
 
 const app = express();
-const PORT = 3000;
-const SECRET_KEY = 'nexus_secret_key_change_me';
+const PORT = process.env.PORT || 3000;
+const SECRET_KEY = process.env.JWT_SECRET || 'nexus_secret_key_change_me';
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '.')));
@@ -29,10 +30,11 @@ const verifyToken = (req, res, next) => {
 // API: Login
 app.post('/api/auth/login', (req, res) => {
     const { username, password } = req.body;
-    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    db.query("SELECT * FROM users WHERE username = ?", [username], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (results.length === 0) return res.status(404).json({ message: 'User not found' });
 
+        const user = results[0];
         const passwordIsValid = bcrypt.compareSync(password, user.password);
         if (!passwordIsValid) return res.status(401).json({ token: null, message: 'Invalid Password' });
 
@@ -49,9 +51,8 @@ app.post('/api/auth/login', (req, res) => {
     });
 });
 
-// API: Get Dashboard Stats (Mocked for now, but served from backend)
+// API: Get Dashboard Stats
 app.get('/api/dashboard/stats', verifyToken, (req, res) => {
-    // In a real app, calculate these from DB
     res.json({
         views: { value: "128.5K", trend: 12.5, up: true },
         sales: { value: "$45,290", trend: 8.2, up: true },
@@ -61,14 +62,14 @@ app.get('/api/dashboard/stats', verifyToken, (req, res) => {
 
 // API: Get Recent Transactions
 app.get('/api/transactions', verifyToken, (req, res) => {
-    db.all("SELECT * FROM transactions ORDER BY id DESC LIMIT 5", [], (err, rows) => {
+    db.query("SELECT * FROM transactions ORDER BY id DESC LIMIT 5", (err, results) => {
         if (err) {
             res.status(400).json({ "error": err.message });
             return;
         }
         res.json({
             message: "success",
-            data: rows
+            data: results
         });
     });
 });
@@ -78,9 +79,9 @@ app.get('/api/users', verifyToken, (req, res) => {
     if (req.userRole !== 'admin') {
         return res.status(403).json({ message: "Require Admin Role" });
     }
-    db.all("SELECT id, username, role, created_at FROM users", [], (err, rows) => {
+    db.query("SELECT id, username, role, created_at FROM users", (err, results) => {
         if (err) return res.status(400).json({ error: err.message });
-        res.json({ data: rows });
+        res.json({ data: results });
     });
 });
 
@@ -91,9 +92,9 @@ app.post('/api/users', verifyToken, (req, res) => {
     const { username, password, role } = req.body;
     const hash = bcrypt.hashSync(password, 10);
 
-    db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, hash, role], function (err) {
+    db.query("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, hash, role], function (err, result) {
         if (err) return res.status(400).json({ error: err.message });
-        res.json({ message: "User created", id: this.lastID });
+        res.json({ message: "User created", id: result.insertId });
     });
 });
 
@@ -101,7 +102,7 @@ app.post('/api/users', verifyToken, (req, res) => {
 app.delete('/api/users/:id', verifyToken, (req, res) => {
     if (req.userRole !== 'admin') return res.status(403).json({ message: "Require Admin Role" });
 
-    db.run("DELETE FROM users WHERE id = ?", req.params.id, function (err) {
+    db.query("DELETE FROM users WHERE id = ?", [req.params.id], function (err) {
         if (err) return res.status(400).json({ error: err.message });
         res.json({ message: "User deleted" });
     });
@@ -115,6 +116,11 @@ app.get('/', (req, res) => {
 // Serve login
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Serve users
+app.get('/users.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'users.html'));
 });
 
 app.listen(PORT, () => {
