@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Analytics Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Note: Using FontAwesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Auth Check
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login';
+
+        // Load User Info
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('userNameDisplay').textContent = user.username;
+            document.getElementById('userRoleDisplay').textContent = user.role;
+
+            // Logout
+            document.querySelector('.logout-icon').addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-cube fa-spin-pulse" style="--fa-animation-duration: 3s;"></i>
+                <span>NEXUS</span>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item active">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>总览 (Overview)</span>
+                </a>
+                <a href="/users.html" class="nav-item">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>用户管理 (Users)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>交易 (Transactions)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>消息 (Messages)</span>
+                    <span class="badge">3</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>设置 (Settings)</span>
+                </a>
+            </nav>
+
+            <div class="user-profile">
+                <div class="avatar">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" />
+                </div>
+                <div class="user-info">
+                    <h4 id="userNameDisplay">Loading...</h4>
+                    <p id="userRoleDisplay">...</p>
+                </div>
+                <i class="fa-solid fa-right-from-bracket logout-icon"></i>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p class="date-display" id="currentDate">loading...</p>
+                </div>
+
+                <div class="header-actions">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="全局搜索...">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon icon-purple">
+                        <i class="fa-solid fa-eye"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>总访问量</h3>
+                        <div class="number">128.5K</div>
+                        <div class="trend up">
+                            <i class="fa-solid fa-arrow-trend-up"></i> +12.5%
+                        </div>
+                    </div>
+                    <div class="bg-glow purple"></div>
+                </div>
+
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon icon-blue">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>总销售额</h3>
+                        <div class="number">$45,290</div>
+                        <div class="trend up">
+                            <i class="fa-solid fa-arrow-trend-up"></i> +8.2%
+                        </div>
+                    </div>
+                    <div class="bg-glow blue"></div>
+                </div>
+
+                <div class="stat-card glass-effect">
+                    <div class="stat-icon icon-pink">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>新用户</h3>
+                        <div class="number">3,842</div>
+                        <div class="trend down">
+                            <i class="fa-solid fa-arrow-trend-down"></i> -2.4%
+                        </div>
+                    </div>
+                    <div class="bg-glow pink"></div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-grid">
+                <div class="chart-card glass-effect large-chart">
+                    <div class="card-header">
+                        <h2>收入趋势图</h2>
+                        <select class="time-select">
+                            <option>本周</option>
+                            <option>本月</option>
+                            <option>今年</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card glass-effect small-chart">
+                    <div class="card-header">
+                        <h2>用户分布</h2>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="userChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity Table -->
+            <section class="activity-section glass-effect">
+                <div class="card-header">
+                    <h2>最近交易</h2>
+                    <button class="btn-primary">查看全部</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>日期</th>
+                                <th>状态</th>
+                                <th>金额</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="td-user">
+                                        <div class="temp-avatar" style="background:#8b5cf6">J</div>
+                                        <span>Jason Lee</span>
+                                    </div>
+                                </td>
+                                <td>Oct 24, 2024</td>
+                                <td><span class="status-pill completed">Completed</span></td>
+                                <td>$450.00</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="td-user">
+                                        <div class="temp-avatar" style="background:#ec4899">S</div>
+                                        <span>Sarah Chen</span>
+                                    </div>
+                                </td>
+                                <td>Oct 23, 2024</td>
+                                <td><span class="status-pill pending">Pending</span></td>
+                                <td>$120.50</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="td-user">
+                                        <div class="temp-avatar" style="background:#06b6d4">M</div>
+                                        <span>Mike Ross</span>
+                                    </div>
+                                </td>
+                                <td>Oct 23, 2024</td>
+                                <td><span class="status-pill completed">Completed</span></td>
+                                <td>$890.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
